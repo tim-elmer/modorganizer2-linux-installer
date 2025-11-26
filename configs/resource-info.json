@@ -1,0 +1,10 @@
+{
+  "jre": {
+    "version": "8.0.472+8",
+    "url": "https://api.adoptium.net/v3/binary/latest/8/ga/linux/x64/jre/hotspot/normal/eclipse"
+  },
+  "mo2": {
+    "version": "2.5.2",
+    "url": "https://github.com/ModOrganizer2/modorganizer/releases/download/v2.5.2/Mod.Organizer-2.5.2.7z"
+  }
+}

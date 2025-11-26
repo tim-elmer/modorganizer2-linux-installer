@@ -1,0 +1,8 @@
+// This doesn't get shipped, just putting it here while I think about what data goes in it and how.
+// Probably lives in ~/.config/mo2-lint/config.json
+{
+  "archive_prefix_on_clean": true,
+  "nexus_api_key": "=someusersecretgoeshere",
+  "nexus_token": "=someusersecretgoeshereeventually",
+  "cache_path": "~/.cache/mo2-lint/"
+}

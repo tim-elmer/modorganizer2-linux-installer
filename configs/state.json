@@ -1,0 +1,32 @@
+// This doesn't get shipped, just putting it here while I think about what data goes in it and how.
+// Probably lives in ~/.cache/mo2-lint/state.json
+{
+  "mo2-lint_version": "7.0.0",
+  "cache": {
+    "jre": {
+      "version": "8.0.472+8",
+      "checksum": "6f7fb5fd640a0fd00837344b0920cbc4b9b9284b50e66f33789e3b250446a16e"
+    },
+    "mo2": {
+      "version": "2.5.2",
+      "checksum": "checksumgoesherebuticouldntbebotheredtofindit"
+    },
+    // The naming here is game_id.resource.store to differentiate between versions
+    "fallout4.script_extender.steam": {
+      "version": "0.7.6",
+      "checksum": "41e7acf12688f640658b593172cb6d806b83643ad76facf27fbbfb3641025e0b"
+    }
+  },
+  "instances": [
+    {
+      "game": "fallout4",
+      "launcher": "steam",
+      "mo2_root": "~/games/modorganizer2_fallout4/"
+    },
+    {
+      "game": "skyrimspecialedition",
+      "launcher": "heroic",
+      "mo2_root": "~/games/modorganizer2_skyrimspecialedition/"
+    }
+  ]
+}
