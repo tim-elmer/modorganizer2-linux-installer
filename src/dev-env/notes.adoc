@@ -1,0 +1,55 @@
+= Notes
+
+* Arg steam path _may_ be used, not sure yet
+* Apps may in turn require other apps; namely Proton versions. PT checks  `installdir/toolmanifest.vdf` for these, but also doesn't mandate that said file exists. Should be able to just exclude it.
+
+== File Structure
+The following is necessary:
+
+----
+Library Root
+    appcache/
+        appinfo.vdf
+    config/
+        config.vdf
+    steamapps/
+        appmanifest_<appid>.acf
+        common/
+            installDir/
+                game.exe
+        compatdata/<appid>/
+            pfx/
+            pfx.lock
+        libraryfolders.vdf
+----
+
+== App Manifest
+* Parsed by PT:
+** `appid`
+** `name` (or `userconfig/name`)
+** `installdir`
+
+== Library Folders
+----
+"libraryfolders"
+{
+	"0"
+	{
+		"path"		"/home/tim/Temp/devlib"
+		"apps"
+		{
+			"397540"		""
+		}
+	}
+}
+----
+
+* The path should point to the library root
+* Apps is a list of app IDs, followed by a value that I assume is their installed size. This value doesn't seem to be required by PT, but must exist for the VDF to be read.
+
+== Config
+* PT appears to be happy with this being empty, so long as it exists
+
+== Functions Required
+`get_prefix`: `-c echo $WINEPREFIX`:: Get prefix location for appid.
+`apply`: `-q --force ...`:: Run given wine command in prefix, ignoring already installed packages and unattended
