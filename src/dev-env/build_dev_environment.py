@@ -25,7 +25,9 @@ def main(steam_root: Path, delete_existing: bool):
                 abort=True
             )
             if not rmtree.avoids_symlink_attacks:
-                confirm('Your operating system is vulnerable to symlink attacks. Continue?', abort=True)
+                confirm(
+                    'Your operating system is vulnerable to symlink attacks. Continue?',
+                    abort=True)
         rmtree(steam_root, ignore_errors=False)
 
     # Build directory structure
@@ -34,16 +36,65 @@ def main(steam_root: Path, delete_existing: bool):
     for path in ('appcache', 'config', 'steamapps'):
         (steam_root / path).mkdir()
 
+    # Construct the binary monstrosity that is appinfo.vdf
+    appinfo_header = bytes(
+        # Version magic number
+        [0x29, 0x44, 0x56, 0x07]
+        # Universe
+    ) + pack('<I', 1)
+
+    appinfo_vdf = pack(
+        '<BiB',
+        # Type
+        0,
+        # Index
+        0,
+        # End
+        0x08
+    )
+
+    sha_hash = b'\x00' * 20
+
+    appinfo_app = pack(
+        '<IIIIQ20sI20s',
+        # App ID
+        0,
+        # VDF size in bytes
+        len(appinfo_vdf),
+        # Info state
+        0,
+        # Last updated
+        0,
+        # Access token
+        0,
+        # SHA hash
+        sha_hash,
+        # Change number
+        0,
+        # VDF SHA hash
+        sha_hash
+    )
+
+    # Add 8 for the length of this field.
+    appinfo_key_table_offset = pack(
+        '<Q', len(appinfo_header) + 8 + len(appinfo_app) + len(appinfo_vdf)
+    )
+
+    appinfo_keys = ['appinfo']
+    appinfo_key_table = pack(
+        # Need to add one byte for the null terminator.
+        f'<{''.join([f'{len(key) + 1}s' for key in appinfo_keys])}',
+        *[bytes(key, 'UTF-8') for key in appinfo_keys]
+    )
+
     with open(steam_root / 'appcache' / 'appinfo.vdf', 'wb') as f:
-        # https://github.com/ValvePython/vdf/issues/13#issuecomment-321700244
-        # for buffer in [
-        #     # Magic number
-        #     b')DV\x07',
-        #     # Universe
-        #     int(1).to_bytes(4, byteorder='little')
-        # ]:
-        #     f.write(buffer)
-        f.write(pack())
+        f.write(appinfo_header)
+        f.write(appinfo_key_table_offset)
+        f.write(appinfo_app)
+        f.write(appinfo_vdf)
+        f.write(pack('<I', len(appinfo_keys)))
+        f.write(appinfo_key_table)
+
     (steam_root / 'config' / 'config.vdf').touch()
     apps_root = steam_root / 'steamapps'
     for path in ('common', 'compatdata'):
@@ -79,7 +130,8 @@ def main(steam_root: Path, delete_existing: bool):
             echo(f'\tBuilding app {install_path}...')
 
             # Add app to library
-            library_folders['libraryfolders']['0']['apps'][app_id] = install_path
+            library_folders['libraryfolders']['0']['apps'][
+                app_id] = install_path
 
             # Build app directory structure
             echo('\t\tBuilding directory structure...')
@@ -103,13 +155,14 @@ def main(steam_root: Path, delete_existing: bool):
 
             # Copy prefix for app
             echo('\t\tCopying prefix...')
-            copytree(prefix_temporary_directory, app_compat_root / 'pfx', symlinks=True)
+            copytree(prefix_temporary_directory, app_compat_root / 'pfx',
+                     symlinks=True)
 
-    echo('Writing library...')
-    with open(apps_root / 'libraryfolders.vdf', 'w') as f:
-        f.write(vdf.dumps(library_folders))
+        echo('Writing library...')
+        with open(apps_root / 'libraryfolders.vdf', 'w') as f:
+            f.write(vdf.dumps(library_folders))
 
-    echo(f'Finished building `{steam_root}`.')
+        echo(f'Finished building `{steam_root}`.')
 
 
 if __name__ == '__main__':

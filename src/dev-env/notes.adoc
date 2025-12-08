@@ -23,6 +23,74 @@ Library Root
         libraryfolders.vdf
 ----
 
+== Appinfo
+Unfortunately, PT does attempt to parse this file. The structure is as follows:
+
+.Header
+[%autowidth,cols="m,2*d,m,d"]
+|===
+| Offset | Format | Item | Value | Notes
+
+| 0x0000 | 4x Byte | Magic number `)DV0x07` | 0x29 0x44 0x56 0x07 | Refers to version 29 of the binary VDF format.
+| 0x0004 | Unsigned 4-byte Int | "Universe" | 1 |
+[[key_table_offset,Key Table Offset]]| 0x0008 | Unsigned 8-byte Int | Key table offset | | Distance to key table, must be computed at pack time.
+|===
+
+=== App Table
+A list of app structs, each of an undefined length.
+
+.App Struct
+[%autowidth,cols="3*d"]
+|===
+| Format | Item | Notes
+
+.4+| Unsigned 4-byte Int | App ID |
+| Size | The size in bytes of _this_ app struct, to include the nested VDF.
+| Info State | Meaning unknown.
+| Last Updated | Appears to be a unix timestamp.
+| Unsigned 8-byte Int | Access Token | Meaning unknown. Presumably something to do with DRM.
+| 20-byte String | SHA Hash | Meaning unknown. Likely the hash of the application? Wouldn't make much sense to be the hash of the struct, since it'd be recursive.
+| Unsigned 4-byte Int | Change Number |
+| 20-byte String | VDF SHA Hash | Meaning unknown. Presumably the hash of the nested VDF.
+| Table of VDF Entry Structs | VDF | A table of VDF Structs, length defined by size.
+|===
+
+.VDF Entry Struct
+[%autowidth,cols="3*d"]
+|===
+| Format | Item | Notes
+
+| Unsigned Byte | Type a| The type of this entry:
+[%autowidth,cols="d,m,d"]
+!===
+! Type ! Value ! Note
+
+! None ! 0x00 ! Denotes the beginning of an object.
+! String ! 0x01 !
+! Signed 4-byte Int ! 0x02 !
+! Float ! 0x03 !
+! Pointer ! 0x04 !
+! Wide String ! 0x05 !
+! Color ! 0x06 !
+! Unsigned 8-byte Int ! 0x07 !
+! End ! 0x08 ! Denotes the end of an object.
+! Signed 8-byte Int ! 0x0A !
+!===
+
+3+h| IF Type is not End
+| Signed 4-byte Int | Key Index |
+3+h| IF Type is not None
+| Type | Value |
+|===
+
+IMPORTANT: Every "None" type VDF entry should be closed by a corresponding "End" type entry.
+
+=== Key Table Count @ <<key_table_offset>>
+Unsigned 4-byte integer.
+
+=== Key Table @ <<key_table_offset>> + `0x04`
+Array of null-terminated strings, proceeding until EOF.
+
 == App Manifest
 * Parsed by PT:
 ** `appid`
