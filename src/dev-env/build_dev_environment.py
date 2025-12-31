@@ -36,6 +36,8 @@ def main(steam_root: Path, delete_existing: bool):
     for path in ('appcache', 'config', 'steamapps'):
         (steam_root / path).mkdir()
 
+    # region TODO: Refactor into appinfo module.
+
     # Construct the binary monstrosity that is appinfo.vdf
     appinfo_header = bytes(
         # Version magic number
@@ -94,6 +96,7 @@ def main(steam_root: Path, delete_existing: bool):
         f.write(appinfo_vdf)
         f.write(pack('<I', len(appinfo_keys)))
         f.write(appinfo_key_table)
+    #endregion
 
     (steam_root / 'config' / 'config.vdf').touch()
     apps_root = steam_root / 'steamapps'
