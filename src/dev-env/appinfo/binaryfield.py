@@ -49,11 +49,11 @@ class BinaryField:
                             'utf-16' if type_ == BinaryField.Type.WIDE_STRING else
                             None
                         )
-                    )
+                    ) + b'\x00'
                 except TypeError:
                     raise ValueError('Value must be coercible to string.')
 
-            elif type in [
+            elif type_ in [
                 BinaryField.Type.POINTER,
                 BinaryField.Type.SINT32,
                 BinaryField.Type.SINT64,
@@ -129,6 +129,8 @@ class BinaryField:
 
             elif isinstance(value, float):
                 self.type = BinaryField.Type.FLOAT
+            else:
+                raise ValueError(f'Unable to deduce type for {type(value)}.')
 
         else:
             if type_ not in BinaryField.Type:
@@ -166,3 +168,7 @@ class BinaryField:
 
         package += BinaryField.Type.pack(self.type, self.value)
         return package
+
+
+    def __str__(self) -> str:
+        return f'{self.type.name} Key: {self.key_index} Value: {self.value}'

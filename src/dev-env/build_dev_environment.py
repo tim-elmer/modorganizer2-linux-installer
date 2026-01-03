@@ -14,7 +14,7 @@ from click import argument, command, confirm, echo, option, Path as click_Path
 def main(steam_root: Path, delete_existing: bool):
     # Each app to be "installed" is defined as its app_id and the installation directory
     apps = {
-        '397540': 'Borderlands 3'
+        '489830': 'Skyrim Special Edition'
     }
 
     # We aren't about to start spelunking in an existing environment to update it, so just delete if it already exists.

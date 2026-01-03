@@ -3,4 +3,4 @@ from pathlib import Path
 
 library_root = Path('/home/timelmer/Tmp/steamdev')
 
-protontricks_main(('--no-runtime', '-c', 'echo $WINEPREFIX', '397540'), library_root, library_root)
+protontricks_main(('--no-runtime', '-c', 'echo $WINEPREFIX', '489830'), library_root, library_root)

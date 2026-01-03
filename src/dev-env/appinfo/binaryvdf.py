@@ -1,6 +1,7 @@
 from collections import OrderedDict
 from ctypes import c_uint32, c_uint64
 from datetime import datetime
+from struct import pack, calcsize
 from typing import Final, Any
 
 from binaryfield import BinaryField
@@ -14,12 +15,12 @@ class BinaryVdf:
             self,
             app_id: c_uint32,
             keys: dict[str, int] | OrderedDict[str, int],
-            access_token: c_uint64 = 0,
-            app_hash: str | None = None,
-            change_number: c_uint32 = 0,
+            access_token: c_uint64 = c_uint64(0),
+            app_hash: bytes | None = None,
+            change_number: c_uint32 = c_uint32(0),
             fields: VDFDict = None,
-            info_state: c_uint32 = 0,
-            last_updated: c_uint32 | datetime = 0
+            info_state: c_uint32 = c_uint32(0),
+            last_updated: c_uint32 | datetime = c_uint32(0)
     ) -> None:
         """
         Represents a binary VDF to be stored in ``appinfo.vdf``.
@@ -40,35 +41,40 @@ class BinaryVdf:
         self.info_state = info_state
         self.keys = keys
         self.last_updated = last_updated
-        self.fields = fields
+
+        if fields is not None and not isinstance(fields, VDFDict):
+            raise ValueError('fields must be a VDFDict or None')
+        self.fields = self._unwrap_vdf_dict(fields) if (
+            isinstance(fields, VDFDict)
+        ) else []
 
     @property
-    def app_hash(self) -> str:
+    def app_hash(self) -> bytes:
         """
         Believed to be the hash of the application.
-        :return: 20B string.
+        :return: 20B.
         """
         return self._app_hash
 
     @app_hash.setter
-    def app_hash(self, value: str | None) -> None:
+    def app_hash(self, value: bytes | None) -> None:
         if value is None:
-            self._app_hash = ' ' * HASH_LENGTH
+            self._app_hash = b'\x00' * HASH_LENGTH
         elif len(value) != HASH_LENGTH:
-            raise ValueError(f'app_hash must be {HASH_LENGTH} characters long')
+            raise ValueError(f'app_hash must be {HASH_LENGTH} bytes')
         else:
             self._app_hash = value
 
     @property
-    def hash(self):
+    def hash(self) -> bytes:
         """
         Believed to be the hash of the VDF's fields.
 
         TODO: Not yet implemented.
 
-        :return: 20B string.
+        :return: 20B.
         """
-        return ' ' * HASH_LENGTH
+        return b'\x00' * HASH_LENGTH
 
     @property
     def last_updated(self) -> datetime:
@@ -87,7 +93,7 @@ class BinaryVdf:
     def last_updated(self, value: datetime | c_uint32) -> None:
         self._last_updated = value if (
             isinstance(value, datetime)
-        ) else datetime.fromtimestamp(float(value))
+        ) else datetime.fromtimestamp(float(value.value))
 
     def _unwrap_vdf_dict(self, vdf_dict: VDFDict) -> list[BinaryField]:
         fields: list[BinaryField] = []
@@ -131,13 +137,26 @@ class BinaryVdf:
             return _fields
 
         for k, v in vdf_dict.items():
-            fields.append(
-                BinaryField(BinaryField.Type.START, key_index=add_find_key(k))
-            )
+            # fields.append(
+            #     BinaryField(BinaryField.Type.START, key_index=add_find_key(k))
+            # )
             fields += unwrap(k, v)
-            fields.append(BinaryField(BinaryField.Type.END))
+            # fields.append(BinaryField(BinaryField.Type.END))
 
         return fields
 
     def as_bytes(self) -> bytes:
-        pass
+        packed_fields = b''.join([f.as_bytes() for f in self.fields])
+
+        header_data = pack(
+            'IIQ20sI20s',
+            self.info_state.value,
+            int(self.last_updated.timestamp()),
+            self.access_token.value,
+            self.app_hash,
+            self.change_number.value,
+            self.hash
+        )
+        header = pack('II', self.app_id.value, calcsize('IIQ20sI20s') + len(packed_fields))
+
+        return header + header_data + packed_fields
