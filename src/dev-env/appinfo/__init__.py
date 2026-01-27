@@ -1,1 +1,2 @@
-from appinfo import AppInfo
+from .appinfo import AppInfo
+from .binaryvdf import BinaryVdf

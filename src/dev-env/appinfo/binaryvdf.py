@@ -1,26 +1,32 @@
 from collections import OrderedDict
-from ctypes import c_uint32, c_uint64
 from datetime import datetime
 from struct import pack, calcsize
 from typing import Final, Any
 
-from binaryfield import BinaryField
+from .binaryfield import BinaryField
+from .valuerange import UINT32, UINT64
 from vdf import VDFDict
 
-HASH_LENGTH: Final[int] = 20
+_HASH_LENGTH: Final[int] = 20
 
 
 class BinaryVdf:
+    _app_id: int
+    _app_hash: bytes
+    _change_number: int
+    _info_state: int
+    _last_updated: datetime
+
     def __init__(
-            self,
-            app_id: c_uint32,
-            keys: dict[str, int] | OrderedDict[str, int],
-            access_token: c_uint64 = c_uint64(0),
-            app_hash: bytes | None = None,
-            change_number: c_uint32 = c_uint32(0),
-            fields: VDFDict = None,
-            info_state: c_uint32 = c_uint32(0),
-            last_updated: c_uint32 | datetime = c_uint32(0)
+        self,
+        app_id: int,
+        keys: dict[str, int] | OrderedDict[str, int],
+        access_token: int = 0,
+        app_hash: bytes | None = None,
+        change_number: int = 0,
+        fields: VDFDict = None,
+        info_state: int = 0,
+        last_updated: int | datetime = 0,
     ) -> None:
         """
         Represents a binary VDF to be stored in ``appinfo.vdf``.
@@ -43,10 +49,26 @@ class BinaryVdf:
         self.last_updated = last_updated
 
         if fields is not None and not isinstance(fields, VDFDict):
-            raise ValueError('fields must be a VDFDict or None')
-        self.fields = self._unwrap_vdf_dict(fields) if (
-            isinstance(fields, VDFDict)
-        ) else []
+            raise ValueError("fields must be a VDFDict or None")
+        self.fields = (
+            self._unwrap_vdf_dict(fields) if (isinstance(fields, VDFDict)) else []
+        )
+
+    @property
+    def access_token(self) -> int:
+        return self._access_token
+
+    @access_token.setter
+    def access_token(self, value: int) -> None:
+        self._access_token = UINT64.assert_(value)
+
+    @property
+    def app_id(self) -> int:
+        return self._app_id
+
+    @app_id.setter
+    def app_id(self, value: int) -> None:
+        self._app_id = UINT32.assert_(value)
 
     @property
     def app_hash(self) -> bytes:
@@ -59,11 +81,19 @@ class BinaryVdf:
     @app_hash.setter
     def app_hash(self, value: bytes | None) -> None:
         if value is None:
-            self._app_hash = b'\x00' * HASH_LENGTH
-        elif len(value) != HASH_LENGTH:
-            raise ValueError(f'app_hash must be {HASH_LENGTH} bytes')
+            self._app_hash = b"\x00" * _HASH_LENGTH
+        elif len(value) != _HASH_LENGTH:
+            raise ValueError(f"app_hash must be {_HASH_LENGTH} bytes")
         else:
             self._app_hash = value
+
+    @property
+    def change_number(self) -> int:
+        return self._change_number
+
+    @change_number.setter
+    def change_number(self, value: int) -> None:
+        self._change_number = UINT32.assert_(value)
 
     @property
     def hash(self) -> bytes:
@@ -74,7 +104,15 @@ class BinaryVdf:
 
         :return: 20B.
         """
-        return b'\x00' * HASH_LENGTH
+        return b"\x00" * _HASH_LENGTH
+
+    @property
+    def info_state(self) -> int:
+        return self._info_state
+
+    @info_state.setter
+    def info_state(self, value: int):
+        self._info_state = UINT32.assert_(value)
 
     @property
     def last_updated(self) -> datetime:
@@ -90,10 +128,12 @@ class BinaryVdf:
         return self._last_updated
 
     @last_updated.setter
-    def last_updated(self, value: datetime | c_uint32) -> None:
-        self._last_updated = value if (
-            isinstance(value, datetime)
-        ) else datetime.fromtimestamp(float(value.value))
+    def last_updated(self, value: int | datetime) -> None:
+        self._last_updated = (
+            value
+            if isinstance(value, datetime)
+            else datetime.fromtimestamp(float(value))
+        )
 
     def _unwrap_vdf_dict(self, vdf_dict: VDFDict) -> list[BinaryField]:
         fields: list[BinaryField] = []
@@ -125,9 +165,7 @@ class BinaryVdf:
             key_index = add_find_key(key)
 
             if isinstance(value, VDFDict):
-                _fields.append(
-                    BinaryField(BinaryField.Type.START, key_index=key_index)
-                )
+                _fields.append(BinaryField(BinaryField.Type.START, key_index=key_index))
                 for _k, _v in value.items():
                     _fields += unwrap(_k, _v)
                 _fields.append(BinaryField(BinaryField.Type.END))
@@ -137,26 +175,22 @@ class BinaryVdf:
             return _fields
 
         for k, v in vdf_dict.items():
-            # fields.append(
-            #     BinaryField(BinaryField.Type.START, key_index=add_find_key(k))
-            # )
             fields += unwrap(k, v)
-            # fields.append(BinaryField(BinaryField.Type.END))
 
         return fields
 
     def as_bytes(self) -> bytes:
-        packed_fields = b''.join([f.as_bytes() for f in self.fields])
+        packed_fields = b"".join([f.as_bytes() for f in self.fields])
 
         header_data = pack(
-            'IIQ20sI20s',
-            self.info_state.value,
+            "IIQ20sI20s",
+            self.info_state,
             int(self.last_updated.timestamp()),
-            self.access_token.value,
+            self.access_token,
             self.app_hash,
-            self.change_number.value,
-            self.hash
+            self.change_number,
+            self.hash,
         )
-        header = pack('II', self.app_id.value, calcsize('IIQ20sI20s') + len(packed_fields))
+        header = pack("II", self.app_id, calcsize("IIQ20sI20s") + len(packed_fields))
 
         return header + header_data + packed_fields

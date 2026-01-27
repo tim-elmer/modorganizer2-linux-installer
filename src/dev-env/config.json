@@ -1,0 +1,12 @@
+{
+  "protons": [
+    {
+      "id": 42,
+      "path": "Proton - Experimental",
+      "key": "proton_experimental"
+    }
+  ],
+  "apps": {
+    "Skyrim Special Edition": 489830
+  }
+}
